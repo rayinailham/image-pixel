@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { compressImageTo500x500, isValidImageFile, getImageDimensions, CompressedImageResult } from '../utils/imageCompression';
+import { PixelTable } from './PixelTable';
 
 interface ImageInfo {
   name: string;
@@ -14,6 +15,7 @@ export const ImageCompressor: React.FC = () => {
   const [compressedImage, setCompressedImage] = useState<CompressedImageResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPixelTable, setShowPixelTable] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +73,7 @@ export const ImageCompressor: React.FC = () => {
     setOriginalImageInfo(null);
     setCompressedImage(null);
     setError(null);
+    setShowPixelTable(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -85,7 +88,7 @@ export const ImageCompressor: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="w-full max-w-full mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
           Image Compressor - 500x500
@@ -122,47 +125,60 @@ export const ImageCompressor: React.FC = () => {
 
         {/* Results */}
         {originalImageInfo && compressedImage && (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Original Image Info */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Original Image</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Name:</span> {originalImageInfo.name}</p>
-                  <p><span className="font-medium">Size:</span> {formatFileSize(originalImageInfo.size)}</p>
-                  <p><span className="font-medium">Dimensions:</span> {originalImageInfo.dimensions.width} × {originalImageInfo.dimensions.height}</p>
-                  <p><span className="font-medium">Type:</span> {originalImageInfo.type}</p>
-                </div>
+          <div className="space-y-6">
+            {/* Original Image Info - Only show before compression */}
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Original Image</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><span className="font-medium">Name:</span> {originalImageInfo.name}</div>
+                <div><span className="font-medium">Size:</span> {formatFileSize(originalImageInfo.size)}</div>
+                <div><span className="font-medium">Dimensions:</span> {originalImageInfo.dimensions.width} × {originalImageInfo.dimensions.height}</div>
+                <div><span className="font-medium">Type:</span> {originalImageInfo.type}</div>
               </div>
-              {originalImage && (
-                <div className="border rounded-md overflow-hidden">
-                  <img
-                    src={URL.createObjectURL(originalImage)}
-                    alt="Original"
-                    className="w-full h-auto max-h-64 object-contain bg-gray-100"
-                  />
-                </div>
-              )}
             </div>
 
-            {/* Compressed Image */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Compressed Image</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Size:</span> {formatFileSize(compressedImage.blob.size)}</p>
-                  <p><span className="font-medium">Dimensions:</span> 500 × 500</p>
-                  <p><span className="font-medium">Type:</span> image/jpeg</p>
-                  <p><span className="font-medium">Compression:</span> {((1 - compressedImage.blob.size / originalImageInfo.size) * 100).toFixed(1)}%</p>
+            {/* Main Content Grid: Compressed Image (1fr) + Pixel Table (3fr) */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* Compressed Image Section - 1fr */}
+              <div className="xl:col-span-1 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">Compressed Image</h3>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Size:</span> {formatFileSize(compressedImage.blob.size)}</p>
+                    <p><span className="font-medium">Dimensions:</span> 500 × 500</p>
+                    <p><span className="font-medium">Type:</span> image/jpeg</p>
+                    <p><span className="font-medium">Compression:</span> {((1 - compressedImage.blob.size / originalImageInfo.size) * 100).toFixed(1)}%</p>
+                  </div>
+                </div>
+                <div className="border rounded-md overflow-hidden bg-white">
+                  <img
+                    src={compressedImage.dataUrl}
+                    alt="Compressed"
+                    className="w-full h-auto"
+                    style={{ maxWidth: '500px', maxHeight: '500px' }}
+                  />
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="space-y-2">
+                  <button
+                    onClick={handleDownload}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors text-sm"
+                  >
+                    Download Image
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm"
+                  >
+                    Upload New Image
+                  </button>
                 </div>
               </div>
-              <div className="border rounded-md overflow-hidden bg-white">
-                <img
-                  src={compressedImage.dataUrl}
-                  alt="Compressed"
-                  className="w-full h-auto"
-                  style={{ maxWidth: '500px', maxHeight: '500px' }}
-                />
+
+              {/* Pixel Table Section - 3fr */}
+              <div className="xl:col-span-3">
+                <PixelTable pixelData={compressedImage.pixelData} width={500} height={500} />
               </div>
             </div>
           </div>
@@ -172,17 +188,22 @@ export const ImageCompressor: React.FC = () => {
         {compressedImage && (
           <div className="mt-6 flex flex-wrap gap-4 justify-center">
             <button
-              onClick={handleDownload}
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+              onClick={() => setShowPixelTable(!showPixelTable)}
+              className={`px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                showPixelTable 
+                  ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white'
+              }`}
             >
-              Download Compressed Image
+              {showPixelTable ? 'Hide Pixel Table' : 'Show Pixel Table'}
             </button>
-            <button
-              onClick={handleReset}
-              className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-            >
-              Upload New Image
-            </button>
+          </div>
+        )}
+
+        {/* Pixel Table */}
+        {compressedImage && showPixelTable && (
+          <div className="mt-8">
+            <PixelTable pixelData={compressedImage.pixelData} width={500} height={500} />
           </div>
         )}
       </div>

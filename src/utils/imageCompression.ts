@@ -6,6 +6,14 @@ export interface CompressedImageResult {
   canvas: HTMLCanvasElement;
   blob: Blob;
   dataUrl: string;
+  pixelData: Uint8ClampedArray;
+}
+
+export interface PixelRGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
 }
 
 export const compressImageTo500x500 = (
@@ -65,11 +73,16 @@ export const compressImageTo500x500 = (
           }
 
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          
+          // Get pixel data from canvas
+          const imageData = ctx.getImageData(0, 0, 500, 500);
+          const pixelData = imageData.data;
 
           resolve({
             canvas,
             blob,
             dataUrl,
+            pixelData,
           });
         },
         'image/jpeg',
@@ -125,4 +138,25 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
 
     img.src = URL.createObjectURL(file);
   });
+};
+
+/**
+ * Gets RGBA value for a specific pixel coordinate from pixel data
+ */
+export const getPixelRGBA = (pixelData: Uint8ClampedArray, x: number, y: number, width: number = 500): PixelRGBA => {
+  const index = (y * width + x) * 4;
+  return {
+    r: pixelData[index],
+    g: pixelData[index + 1], 
+    b: pixelData[index + 2],
+    a: pixelData[index + 3]
+  };
+};
+
+/**
+ * Converts RGBA values to hex string
+ */
+export const rgbaToHex = (r: number, g: number, b: number, a: number = 255): string => {
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}${a < 255 ? toHex(a) : ''}`;
 };
